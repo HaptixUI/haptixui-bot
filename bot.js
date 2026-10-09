@@ -154,7 +154,10 @@ app.post('/webhook', async (req, res) => {
                           upperText.includes('CART') || 
                           upperText.includes('TOGGLE') || 
                           upperText.includes('CARD') || 
-                          upperText.includes('LOADER');
+                          upperText.includes('LOADER') ||
+                          upperText.includes('LINK') ||
+                          upperText.includes('SEND') ||
+                          upperText.includes('SOURCE');
 
         if (isTrigger) {
           const component = getComponentForComment(text);
