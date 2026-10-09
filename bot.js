@@ -23,6 +23,11 @@ const COMPONENT_CATALOG = {
     name: '3D Delivery Truck Cart Button',
     url: `${BASE_WEBSITE_URL}?id=cart-button`
   },
+  // 3. 3D Rotating Glowing Heart
+  'HEART': {
+    name: '3D Rotating Glowing Heart',
+    url: `${BASE_WEBSITE_URL}?id=heart-3d`
+  },
   // Default fallback when user comments "CODE"
   'DEFAULT': {
     name: 'Animated 3-Stage Download Button',
@@ -89,6 +94,7 @@ app.get('/webhook', (req, res) => {
 function getComponentForComment(text) {
   const upper = text.toUpperCase();
   if (upper.includes('CART') || upper.includes('TRUCK')) return COMPONENT_CATALOG.CART;
+  if (upper.includes('HEART') || upper.includes('LOVE') || upper.includes('ROMANTIC') || upper.includes('3D')) return COMPONENT_CATALOG.HEART;
   return COMPONENT_CATALOG.BUTTON;
 }
 
@@ -135,6 +141,9 @@ app.post('/webhook', async (req, res) => {
                           upperText.includes('BUTTON') || 
                           upperText.includes('CART') || 
                           upperText.includes('TRUCK') ||
+                          upperText.includes('HEART') ||
+                          upperText.includes('LOVE') ||
+                          upperText.includes('3D') ||
                           upperText.includes('LINK') ||
                           upperText.includes('SEND') ||
                           upperText.includes('SOURCE');
