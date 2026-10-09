@@ -1,0 +1,8 @@
+{
+  "name": "haptixui",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "puppeteer-core": "^25.12.0"
+  }
+}
