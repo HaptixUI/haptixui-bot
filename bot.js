@@ -7,7 +7,7 @@ const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 5000;
-const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'motionui_bot_verify_token_2026';
+const VERIFY_TOKEN = process.env.VERIFY_TOKEN || 'haptixui_bot_verify_token_2026';
 const PAGE_ACCESS_TOKEN = process.env.PAGE_ACCESS_TOKEN || '';
 const BASE_WEBSITE_URL = 'https://haptixui.github.io/';
 
