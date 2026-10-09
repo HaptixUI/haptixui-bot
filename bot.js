@@ -116,7 +116,7 @@ async function getComponentForComment(text, mediaId) {
 
     if (PAGE_ACCESS_TOKEN) {
       try {
-        const res = await fetch(`https://graph.instagram.com/v19.0/${mediaId}?fields=caption&access_token=${PAGE_ACCESS_TOKEN}`);
+        const res = await fetch(`https://graph.instagram.com/v20.0/${mediaId}?fields=caption&access_token=${PAGE_ACCESS_TOKEN}`);
         const data = await res.json();
         const caption = (data?.caption || '').toUpperCase();
 
@@ -198,7 +198,7 @@ app.post('/webhook', async (req, res) => {
 
           try {
             // A) Send Instagram Direct Message via Official Private Reply
-            const dmResponse = await fetch(`https://graph.instagram.com/v19.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
+            const dmResponse = await fetch(`https://graph.instagram.com/v20.0/me/messages?access_token=${PAGE_ACCESS_TOKEN}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
@@ -219,7 +219,7 @@ app.post('/webhook', async (req, res) => {
             }
 
             // B) Public Comment Reply (Only once, zero loops)
-            const replyResponse = await fetch(`https://graph.instagram.com/v19.0/${commentId}/replies?access_token=${PAGE_ACCESS_TOKEN}`, {
+            const replyResponse = await fetch(`https://graph.instagram.com/v20.0/${commentId}/replies?access_token=${PAGE_ACCESS_TOKEN}`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
