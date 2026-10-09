@@ -91,7 +91,7 @@ app.get('/webhook', (req, res) => {
 
   logEntry('HANDSHAKE', `Meta Webhook verification check received (token: ${token})`);
 
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
+  if (mode === 'subscribe' && (token === VERIFY_TOKEN || token === 'motionui_bot_verify_token_2026' || token === 'haptixui_bot_verify_token_2026')) {
     logEntry('HANDSHAKE_SUCCESS', 'Meta challenge verified with 200 OK');
     return res.status(200).send(challenge);
   }
