@@ -13,7 +13,7 @@ const BASE_WEBSITE_URL = 'https://haptixui.github.io/';
 
 // Dynamic Component Deep-Links for Every Reel
 const COMPONENT_CATALOG = {
-  // 1. Download Button (Current Reel)
+  // 1. Download Button (State Transition)
   'BUTTON': {
     name: 'Animated 3-Stage Download Button',
     url: `${BASE_WEBSITE_URL}?id=download-button`
@@ -22,30 +22,6 @@ const COMPONENT_CATALOG = {
   'CART': {
     name: '3D Delivery Truck Cart Button',
     url: `${BASE_WEBSITE_URL}?id=cart-button`
-  },
-  // 3. Theme Toggle Switch
-  'TOGGLE': {
-    name: 'Celestial Day & Night Switch',
-    url: `${BASE_WEBSITE_URL}?id=theme-toggle`
-  },
-  // 4. 3D Tilt Card
-  'CARD': {
-    name: '3D Holographic Tilt Card',
-    url: `${BASE_WEBSITE_URL}?id=hologram-card`
-  },
-  // 5. Quantum Loader
-  'LOADER': {
-    name: 'Infinity Quantum Orbit Loader',
-    url: `${BASE_WEBSITE_URL}?id=quantum-loader`
-  },
-  // 6. Interactive String Confession Animation (Viral "LOVE" CTA)
-  'LOVE': {
-    name: 'Interactive String Confession Animation 💌🧵',
-    url: `${BASE_WEBSITE_URL}?id=string-confession`
-  },
-  'CONFESS': {
-    name: 'Interactive String Confession Animation 💌🧵',
-    url: `${BASE_WEBSITE_URL}?id=string-confession`
   },
   // Default fallback when user comments "CODE"
   'DEFAULT': {
@@ -112,12 +88,8 @@ app.get('/webhook', (req, res) => {
 // Helper to determine which component link to send based on comment text
 function getComponentForComment(text) {
   const upper = text.toUpperCase();
-  if (upper.includes('LOVE') || upper.includes('CONFESS') || upper.includes('STRING') || upper.includes('HEART')) return COMPONENT_CATALOG.LOVE;
   if (upper.includes('CART') || upper.includes('TRUCK')) return COMPONENT_CATALOG.CART;
-  if (upper.includes('TOGGLE') || upper.includes('SWITCH')) return COMPONENT_CATALOG.TOGGLE;
-  if (upper.includes('CARD') || upper.includes('TILT')) return COMPONENT_CATALOG.CARD;
-  if (upper.includes('LOADER') || upper.includes('ORBIT')) return COMPONENT_CATALOG.LOADER;
-  return COMPONENT_CATALOG.DEFAULT;
+  return COMPONENT_CATALOG.BUTTON;
 }
 
 // 4. Incoming Instagram Events (Comment on Reel / Post)
@@ -162,13 +134,7 @@ app.post('/webhook', async (req, res) => {
         const isTrigger = upperText.includes('CODE') || 
                           upperText.includes('BUTTON') || 
                           upperText.includes('CART') || 
-                          upperText.includes('TOGGLE') || 
-                          upperText.includes('CARD') || 
-                          upperText.includes('LOADER') ||
-                          upperText.includes('LOVE') ||
-                          upperText.includes('CONFESS') ||
-                          upperText.includes('STRING') ||
-                          upperText.includes('HEART') ||
+                          upperText.includes('TRUCK') ||
                           upperText.includes('LINK') ||
                           upperText.includes('SEND') ||
                           upperText.includes('SOURCE');
