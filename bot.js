@@ -28,10 +28,10 @@ const COMPONENT_CATALOG = {
     name: '3D Rotating Glowing Heart',
     url: `${BASE_WEBSITE_URL}?id=heart-3d`
   },
-  // Default fallback when user comments "CODE"
+  // Default fallback when user comments "CODE" on latest reel
   'DEFAULT': {
-    name: 'Animated 3-Stage Download Button',
-    url: `${BASE_WEBSITE_URL}?id=download-button`
+    name: '3D Rotating Glowing Heart',
+    url: `${BASE_WEBSITE_URL}?id=heart-3d`
   }
 };
 
@@ -90,12 +90,55 @@ app.get('/webhook', (req, res) => {
   res.sendStatus(403);
 });
 
-// Helper to determine which component link to send based on comment text
-function getComponentForComment(text) {
+// Cache mapping mediaId -> component
+const mediaComponentCache = new Map();
+
+// Helper to determine exactly which component link to send based on comment & reel media
+async function getComponentForComment(text, mediaId) {
   const upper = text.toUpperCase();
-  if (upper.includes('CART') || upper.includes('TRUCK')) return COMPONENT_CATALOG.CART;
-  if (upper.includes('HEART') || upper.includes('LOVE') || upper.includes('ROMANTIC') || upper.includes('3D')) return COMPONENT_CATALOG.HEART;
-  return COMPONENT_CATALOG.BUTTON;
+
+  // 1. Direct Keyword in user's comment
+  if (upper.includes('HEART') || upper.includes('LOVE') || upper.includes('ROMANTIC') || upper.includes('3D')) {
+    return COMPONENT_CATALOG.HEART;
+  }
+  if (upper.includes('CART') || upper.includes('TRUCK')) {
+    return COMPONENT_CATALOG.CART;
+  }
+  if (upper.includes('BUTTON') || upper.includes('DOWNLOAD')) {
+    return COMPONENT_CATALOG.BUTTON;
+  }
+
+  // 2. If user commented generic "CODE", check which reel they commented on via Media ID!
+  if (mediaId) {
+    if (mediaComponentCache.has(mediaId)) {
+      return mediaComponentCache.get(mediaId);
+    }
+
+    if (PAGE_ACCESS_TOKEN) {
+      try {
+        const res = await fetch(`https://graph.instagram.com/v19.0/${mediaId}?fields=caption&access_token=${PAGE_ACCESS_TOKEN}`);
+        const data = await res.json();
+        const caption = (data?.caption || '').toUpperCase();
+
+        let matched = COMPONENT_CATALOG.HEART; // Default to latest reel
+        if (caption.includes('CART') || caption.includes('TRUCK')) {
+          matched = COMPONENT_CATALOG.CART;
+        } else if (caption.includes('BUTTON') || caption.includes('DOWNLOAD')) {
+          matched = COMPONENT_CATALOG.BUTTON;
+        } else if (caption.includes('HEART') || caption.includes('LOVE') || caption.includes('3D')) {
+          matched = COMPONENT_CATALOG.HEART;
+        }
+
+        mediaComponentCache.set(mediaId, matched);
+        return matched;
+      } catch (err) {
+        console.error('Could not fetch reel caption:', err.message);
+      }
+    }
+  }
+
+  // 3. Default to current active reel (3D Heart)
+  return COMPONENT_CATALOG.HEART;
 }
 
 // 4. Incoming Instagram Events (Comment on Reel / Post)
@@ -111,6 +154,7 @@ app.post('/webhook', async (req, res) => {
       if (change.field === 'comments') {
         const comment = change.value;
         const commentId = comment?.id;
+        const mediaId = comment?.media?.id;
         const text = (comment?.text || '').trim();
         const upperText = text.toUpperCase();
         const commenterId = comment?.from?.id;
@@ -134,7 +178,7 @@ app.post('/webhook', async (req, res) => {
         }
         processedComments.add(commentId);
 
-        logEntry('COMMENT_DETECTED', `Comment from @${username}: "${text}" (ID: ${commentId})`, { commenterId, commentId });
+        logEntry('COMMENT_DETECTED', `Comment from @${username}: "${text}" (ID: ${commentId})`, { commenterId, commentId, mediaId });
 
         // Trigger if contains "CODE" or component keywords
         const isTrigger = upperText.includes('CODE') || 
@@ -149,7 +193,7 @@ app.post('/webhook', async (req, res) => {
                           upperText.includes('SOURCE');
 
         if (isTrigger) {
-          const component = getComponentForComment(text);
+          const component = await getComponentForComment(text, mediaId);
           logEntry('TRIGGER_MATCH', `Matched ${component.name} for @${username}! Sending Auto-DM...`);
 
           try {
