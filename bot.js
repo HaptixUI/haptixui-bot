@@ -38,6 +38,15 @@ const COMPONENT_CATALOG = {
     name: 'Infinity Quantum Orbit Loader',
     url: `${BASE_WEBSITE_URL}?id=quantum-loader`
   },
+  // 6. Interactive String Confession Animation (Viral "LOVE" CTA)
+  'LOVE': {
+    name: 'Interactive String Confession Animation 💌🧵',
+    url: `${BASE_WEBSITE_URL}?id=string-confession`
+  },
+  'CONFESS': {
+    name: 'Interactive String Confession Animation 💌🧵',
+    url: `${BASE_WEBSITE_URL}?id=string-confession`
+  },
   // Default fallback when user comments "CODE"
   'DEFAULT': {
     name: 'Animated 3-Stage Download Button',
@@ -103,6 +112,7 @@ app.get('/webhook', (req, res) => {
 // Helper to determine which component link to send based on comment text
 function getComponentForComment(text) {
   const upper = text.toUpperCase();
+  if (upper.includes('LOVE') || upper.includes('CONFESS') || upper.includes('STRING') || upper.includes('HEART')) return COMPONENT_CATALOG.LOVE;
   if (upper.includes('CART') || upper.includes('TRUCK')) return COMPONENT_CATALOG.CART;
   if (upper.includes('TOGGLE') || upper.includes('SWITCH')) return COMPONENT_CATALOG.TOGGLE;
   if (upper.includes('CARD') || upper.includes('TILT')) return COMPONENT_CATALOG.CARD;
@@ -155,6 +165,10 @@ app.post('/webhook', async (req, res) => {
                           upperText.includes('TOGGLE') || 
                           upperText.includes('CARD') || 
                           upperText.includes('LOADER') ||
+                          upperText.includes('LOVE') ||
+                          upperText.includes('CONFESS') ||
+                          upperText.includes('STRING') ||
+                          upperText.includes('HEART') ||
                           upperText.includes('LINK') ||
                           upperText.includes('SEND') ||
                           upperText.includes('SOURCE');
