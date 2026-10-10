@@ -42,6 +42,15 @@ const COMPONENT_CATALOG = {
     name: '3D Interactive DNA Double Helix',
     url: `${BASE_WEBSITE_URL}?id=dna-helix`
   },
+  // 6. 3D Interactive Periodic Table
+  'TABLE': {
+    name: '3D Interactive Periodic Table',
+    url: `${BASE_WEBSITE_URL}periodic_table.html`
+  },
+  'PERIODIC': {
+    name: '3D Interactive Periodic Table',
+    url: `${BASE_WEBSITE_URL}periodic_table.html`
+  },
   // Default fallback when user comments "CODE" on latest reel
   'DEFAULT': {
     name: '3D Interactive DNA Double Helix',
@@ -112,6 +121,9 @@ async function getComponentForComment(text, mediaId) {
   const upper = text.toUpperCase();
 
   // 1. Direct Keyword in user's comment
+  if (upper.includes('TABLE') || upper.includes('PERIODIC') || upper.includes('ELEMENT') || upper.includes('SPHERE')) {
+    return COMPONENT_CATALOG.TABLE;
+  }
   if (upper.includes('TREE') || upper.includes('SAKURA') || upper.includes('FRACTAL') || upper.includes('BRANCH') || upper.includes('🌸') || upper.includes('🌲')) {
     return COMPONENT_CATALOG.TREE;
   }
@@ -204,7 +216,11 @@ app.post('/webhook', async (req, res) => {
         logEntry('COMMENT_DETECTED', `Comment from @${username}: "${text}" (ID: ${commentId})`, { commenterId, commentId, mediaId });
 
         // Trigger if contains keywords OR is a short comment (1-6 words)
-        const isKeyword = upperText.includes('TREE') ||
+        const isKeyword = upperText.includes('TABLE') ||
+                          upperText.includes('PERIODIC') ||
+                          upperText.includes('ELEMENT') ||
+                          upperText.includes('SPHERE') ||
+                          upperText.includes('TREE') ||
                           upperText.includes('SAKURA') ||
                           upperText.includes('FRACTAL') ||
                           upperText.includes('BRANCH') ||
