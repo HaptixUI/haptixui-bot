@@ -53,8 +53,8 @@ const COMPONENT_CATALOG = {
   },
   // Default fallback when user comments "CODE" on latest reel
   'DEFAULT': {
-    name: '3D Interactive DNA Double Helix',
-    url: `${BASE_WEBSITE_URL}?id=dna-helix`
+    name: '3D Interactive Periodic Table',
+    url: `${BASE_WEBSITE_URL}periodic_table.html`
   }
 };
 
