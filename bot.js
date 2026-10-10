@@ -112,20 +112,23 @@ async function getComponentForComment(text, mediaId) {
   const upper = text.toUpperCase();
 
   // 1. Direct Keyword in user's comment
-  if (upper.includes('TREE') || upper.includes('SAKURA') || upper.includes('FRACTAL') || upper.includes('BRANCH')) {
+  if (upper.includes('TREE') || upper.includes('SAKURA') || upper.includes('FRACTAL') || upper.includes('BRANCH') || upper.includes('🌸') || upper.includes('🌲')) {
     return COMPONENT_CATALOG.TREE;
   }
-  if (upper.includes('HEART') || upper.includes('LOVE') || upper.includes('ROMANTIC') || upper.includes('3D')) {
+  if (upper.includes('DNA') || upper.includes('HELIX') || upper.includes('🧬')) {
+    return COMPONENT_CATALOG.DNA;
+  }
+  if (upper.includes('HEART') || upper.includes('LOVE') || upper.includes('ROMANTIC') || upper.includes('❤️')) {
     return COMPONENT_CATALOG.HEART;
   }
-  if (upper.includes('CART') || upper.includes('TRUCK')) {
+  if (upper.includes('CART') || upper.includes('TRUCK') || upper.includes('🛒') || upper.includes('🚚')) {
     return COMPONENT_CATALOG.CART;
   }
   if (upper.includes('BUTTON') || upper.includes('DOWNLOAD')) {
     return COMPONENT_CATALOG.BUTTON;
   }
 
-  // 2. If user commented generic "CODE", check which reel they commented on via Media ID!
+  // 2. If user commented generic "CODE" or short comment, check reel caption via Media ID!
   if (mediaId) {
     if (mediaComponentCache.has(mediaId)) {
       return mediaComponentCache.get(mediaId);
@@ -140,6 +143,8 @@ async function getComponentForComment(text, mediaId) {
         let matched = COMPONENT_CATALOG.TREE; // Default to latest reel (Sakura Tree)
         if (caption.includes('TREE') || caption.includes('SAKURA') || caption.includes('FRACTAL')) {
           matched = COMPONENT_CATALOG.TREE;
+        } else if (caption.includes('DNA') || caption.includes('HELIX')) {
+          matched = COMPONENT_CATALOG.DNA;
         } else if (caption.includes('CART') || caption.includes('TRUCK')) {
           matched = COMPONENT_CATALOG.CART;
         } else if (caption.includes('BUTTON') || caption.includes('DOWNLOAD')) {
@@ -183,7 +188,6 @@ app.post('/webhook', async (req, res) => {
 
         // Ignore bot's own comments to prevent recursive loops
         const isBotAccount = username.toLowerCase() === 'haptixui' || 
-                             username.toLowerCase() === 'sachin.mandawi' || 
                              commenterId === '28293499653683727';
         if (isBotAccount) {
           console.log(`⏩ Ignoring bot's own comment from @${username}`);
@@ -199,17 +203,40 @@ app.post('/webhook', async (req, res) => {
 
         logEntry('COMMENT_DETECTED', `Comment from @${username}: "${text}" (ID: ${commentId})`, { commenterId, commentId, mediaId });
 
-        // Trigger if contains "CODE" or component keywords
-        const isTrigger = upperText.includes('CODE') || 
-                          upperText.includes('BUTTON') || 
-                          upperText.includes('CART') || 
-                          upperText.includes('TRUCK') ||
+        // Trigger if contains keywords OR is a short comment (1-6 words)
+        const isKeyword = upperText.includes('TREE') ||
+                          upperText.includes('SAKURA') ||
+                          upperText.includes('FRACTAL') ||
+                          upperText.includes('BRANCH') ||
+                          upperText.includes('DNA') ||
+                          upperText.includes('HELIX') ||
                           upperText.includes('HEART') ||
                           upperText.includes('LOVE') ||
-                          upperText.includes('3D') ||
+                          upperText.includes('ROMANTIC') ||
+                          upperText.includes('CART') ||
+                          upperText.includes('TRUCK') ||
+                          upperText.includes('BUTTON') ||
+                          upperText.includes('DOWNLOAD') ||
+                          upperText.includes('CODE') ||
                           upperText.includes('LINK') ||
                           upperText.includes('SEND') ||
-                          upperText.includes('SOURCE');
+                          upperText.includes('SOURCE') ||
+                          upperText.includes('PLEASE') ||
+                          upperText.includes('PLS') ||
+                          upperText.includes('WANT') ||
+                          upperText.includes('GIVE') ||
+                          upperText.includes('NEED') ||
+                          upperText.includes('GET') ||
+                          upperText.includes('HOW') ||
+                          upperText.includes('🌸') ||
+                          upperText.includes('🌲') ||
+                          upperText.includes('🧬') ||
+                          upperText.includes('❤️');
+
+        const words = text.split(/\s+/).filter(Boolean);
+        const isShortComment = words.length >= 1 && words.length <= 6;
+
+        const isTrigger = isKeyword || isShortComment;
 
         if (isTrigger) {
           const component = await getComponentForComment(text, mediaId);
