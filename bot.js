@@ -33,10 +33,19 @@ const COMPONENT_CATALOG = {
     name: 'Sakura Fractal Tree',
     url: `${BASE_WEBSITE_URL}?id=sakura-tree`
   },
+  // 5. 3D DNA Double Helix
+  'DNA': {
+    name: '3D Interactive DNA Double Helix',
+    url: `${BASE_WEBSITE_URL}?id=dna-helix`
+  },
+  'HELIX': {
+    name: '3D Interactive DNA Double Helix',
+    url: `${BASE_WEBSITE_URL}?id=dna-helix`
+  },
   // Default fallback when user comments "CODE" on latest reel
   'DEFAULT': {
-    name: 'Sakura Fractal Tree',
-    url: `${BASE_WEBSITE_URL}?id=sakura-tree`
+    name: '3D Interactive DNA Double Helix',
+    url: `${BASE_WEBSITE_URL}?id=dna-helix`
   }
 };
 
