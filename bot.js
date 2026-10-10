@@ -28,10 +28,15 @@ const COMPONENT_CATALOG = {
     name: '3D Rotating Glowing Heart',
     url: `${BASE_WEBSITE_URL}?id=heart-3d`
   },
+  // 4. Sakura Fractal Tree
+  'TREE': {
+    name: 'Sakura Fractal Tree',
+    url: `${BASE_WEBSITE_URL}?id=sakura-tree`
+  },
   // Default fallback when user comments "CODE" on latest reel
   'DEFAULT': {
-    name: '3D Rotating Glowing Heart',
-    url: `${BASE_WEBSITE_URL}?id=heart-3d`
+    name: 'Sakura Fractal Tree',
+    url: `${BASE_WEBSITE_URL}?id=sakura-tree`
   }
 };
 
@@ -98,6 +103,9 @@ async function getComponentForComment(text, mediaId) {
   const upper = text.toUpperCase();
 
   // 1. Direct Keyword in user's comment
+  if (upper.includes('TREE') || upper.includes('SAKURA') || upper.includes('FRACTAL') || upper.includes('BRANCH')) {
+    return COMPONENT_CATALOG.TREE;
+  }
   if (upper.includes('HEART') || upper.includes('LOVE') || upper.includes('ROMANTIC') || upper.includes('3D')) {
     return COMPONENT_CATALOG.HEART;
   }
@@ -120,8 +128,10 @@ async function getComponentForComment(text, mediaId) {
         const data = await res.json();
         const caption = (data?.caption || '').toUpperCase();
 
-        let matched = COMPONENT_CATALOG.HEART; // Default to latest reel
-        if (caption.includes('CART') || caption.includes('TRUCK')) {
+        let matched = COMPONENT_CATALOG.TREE; // Default to latest reel (Sakura Tree)
+        if (caption.includes('TREE') || caption.includes('SAKURA') || caption.includes('FRACTAL')) {
+          matched = COMPONENT_CATALOG.TREE;
+        } else if (caption.includes('CART') || caption.includes('TRUCK')) {
           matched = COMPONENT_CATALOG.CART;
         } else if (caption.includes('BUTTON') || caption.includes('DOWNLOAD')) {
           matched = COMPONENT_CATALOG.BUTTON;
@@ -137,8 +147,8 @@ async function getComponentForComment(text, mediaId) {
     }
   }
 
-  // 3. Default to current active reel (3D Heart)
-  return COMPONENT_CATALOG.HEART;
+  // 3. Default to current active reel (Sakura Tree)
+  return COMPONENT_CATALOG.TREE;
 }
 
 // 4. Incoming Instagram Events (Comment on Reel / Post)
