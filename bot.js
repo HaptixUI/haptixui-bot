@@ -680,6 +680,11 @@ app.post('/webhook', async (req, res) => {
       const msgText = (msgEvent.message?.text || '').trim();
       const upperMsgText = msgText.toUpperCase();
 
+      // Ignore delivery and read receipts (empty text without payload)
+      if (msgEvent.delivery || msgEvent.read || (!msgText && !postbackPayload && !quickReplyPayload)) {
+        continue;
+      }
+
       logEntry('DM_EVENT_RECEIVED', `From user ${senderId}: text="${msgText}", postback="${postbackPayload}", qr="${quickReplyPayload}"`);
 
       // 1. Resolve Component Key from payload or cached user state
