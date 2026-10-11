@@ -711,18 +711,31 @@ app.post('/webhook', async (req, res) => {
                                  upperMsgText === 'SEND';
 
       if (isFollowConfirmedTrigger) {
-        logEntry('FLOW_STEP3_DELIVERY', `User ${senderId} tapped "I'm following"! Delivering 2 final buttons for ${componentKey}`);
-        const actuallyFollows = await verifyUserFollows(senderId);
-        await sendStep3FinalDelivery(senderId, componentKey, false, actuallyFollows);
+        logEntry('FLOW_STEP3_VERIFY', `User ${senderId} tapped "I'm following"! Verifying with Meta API...`);
+        let actuallyFollows = await verifyUserFollows(senderId);
+
+        // Quick retry after 1.5s in case of API latency
+        if (!actuallyFollows) {
+          await new Promise(r => setTimeout(r, 1500));
+          actuallyFollows = await verifyUserFollows(senderId);
+        }
+
+        if (actuallyFollows) {
+          logEntry('FOLLOW_VERIFIED_SUCCESS', `User ${senderId} is VERIFIED follower! Delivering 2 final buttons for ${componentKey}`);
+          await sendStep3FinalDelivery(senderId, componentKey, false, true);
+        } else {
+          logEntry('FOLLOW_VERIFIED_BLOCKED', `User ${senderId} is NOT following! Access strictly BLOCKED.`);
+          await sendNotFollowingAlert(senderId, componentKey);
+        }
       } else if (isGetAccessTrigger) {
         // Smart Follower Check via Meta Graph API:
         // Agar user pehle se follow kar raha hai, toh Step 2 skip karke directly Step 3 deliver karo!
-        const profile = await getUserProfile(senderId);
-        if (profile.isFollower) {
-          logEntry('ALREADY_FOLLOWING', `User ${profile.name} (${senderId}) is ALREADY following! Skipping Step 2 -> Delivering Step 3 directly!`);
-          await sendStep3FinalDelivery(senderId, componentKey, true);
+        const actuallyFollows = await verifyUserFollows(senderId);
+        if (actuallyFollows) {
+          logEntry('ALREADY_FOLLOWING', `User ${senderId} is ALREADY following! Skipping Step 2 -> Delivering Step 3 directly!`);
+          await sendStep3FinalDelivery(senderId, componentKey, true, true);
         } else {
-          logEntry('FLOW_STEP2', `User ${profile.name} (${senderId}) not yet following. Sending Step 2 Follow-Gate for ${componentKey}`);
+          logEntry('FLOW_STEP2', `User ${senderId} not yet following. Sending Step 2 Follow-Gate for ${componentKey}`);
           await sendStep2FollowGate(senderId, componentKey);
         }
       } else {
