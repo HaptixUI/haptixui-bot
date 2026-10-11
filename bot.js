@@ -195,7 +195,7 @@ function getRandomPublicReply(username) {
 // STEP 1: Initial Reply to Comment with Real Attached Button
 // -----------------------------------------------------------------------------
 async function sendStep1InitialAccess(commentId, commenterId, username, component) {
-  const textMsg = `Hey @${username}! I'm so glad you're here — thanks a ton for stopping by 😊\n\nTap below and I'll send you the access in just a moment ✨`;
+  const textMsg = `Hey @${username}! Super hyped you loved this component 🚀\n\nTap below to unlock your direct access link ✨`;
 
   const cardPayload = {
     attachment: {
@@ -370,7 +370,7 @@ async function sendNotFollowingAlert(senderId, componentKey) {
 // Button 1: Reel Component direct link
 // Button 2: Website main catalog link
 // -----------------------------------------------------------------------------
-async function sendStep3FinalDelivery(senderId, componentKey, isExistingFollower = false) {
+async function sendStep3FinalDelivery(senderId, componentKey, isExistingFollower = false, isVerified = false) {
   const compKey = componentKey || 'DEFAULT';
   const component = COMPONENT_CATALOG[compKey] || COMPONENT_CATALOG.DEFAULT;
   const user = await getUserProfile(senderId);
@@ -381,10 +381,10 @@ async function sendStep3FinalDelivery(senderId, componentKey, isExistingFollower
   await new Promise(r => setTimeout(r, 700));
 
   let deliveryText;
-  if (isExistingFollower) {
-    deliveryText = `Hey ${user.name}! Thanks so much for being an awesome follower ❤️\n\nHere is your promised link ⬇️`;
+  if (isExistingFollower || isVerified) {
+    deliveryText = `Verified! 🎉 Thanks so much for following @haptixui ❤️\n\nHere are the promised links ⬇️`;
   } else {
-    deliveryText = `Awesome ${user.name}! Glad you commented 🙌\n\nHere is your promised link ⬇️`;
+    deliveryText = `Awesome ${user.name}! Welcome to the creator family 🎉\n\nHere are the promised links ⬇️`;
   }
 
   const reelBtnTitle = component.buttonTitle || '🔗 Get Reel Code';
@@ -711,17 +711,9 @@ app.post('/webhook', async (req, res) => {
                                  upperMsgText === 'SEND';
 
       if (isFollowConfirmedTrigger) {
-        logEntry('FLOW_STEP3_VERIFY', `User ${senderId} tapped "I'm following"! Verifying actual follower status...`);
-        // STRICT CHECK: Verify with Meta API if user is ACTUALLY following!
+        logEntry('FLOW_STEP3_DELIVERY', `User ${senderId} tapped "I'm following"! Delivering 2 final buttons for ${componentKey}`);
         const actuallyFollows = await verifyUserFollows(senderId);
-
-        if (actuallyFollows) {
-          logEntry('FOLLOW_VERIFIED_SUCCESS', `User ${senderId} is VERIFIED follower! Delivering 2 final buttons for ${componentKey}`);
-          await sendStep3FinalDelivery(senderId, componentKey, false);
-        } else {
-          logEntry('FOLLOW_VERIFIED_FAILED', `User ${senderId} tapped "I'm following" BUT is NOT actually following! Refusing access.`);
-          await sendNotFollowingAlert(senderId, componentKey);
-        }
+        await sendStep3FinalDelivery(senderId, componentKey, false, actuallyFollows);
       } else if (isGetAccessTrigger) {
         // Smart Follower Check via Meta Graph API:
         // Agar user pehle se follow kar raha hai, toh Step 2 skip karke directly Step 3 deliver karo!
