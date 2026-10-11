@@ -1,11 +1,9 @@
 {
-  "name": "haptixui-bot",
+  "name": "haptixui",
   "version": "1.0.0",
   "type": "module",
-  "scripts": {
-    "start": "node bot.js"
-  },
   "dependencies": {
+    "puppeteer-core": "^24.0.0",
     "express": "^4.19.2",
     "dotenv": "^16.4.5"
   }
