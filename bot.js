@@ -158,6 +158,25 @@ async function getUserProfile(senderId) {
   }
 }
 
+// Strictly check live with Meta API if user is ACTUALLY following HaptixUI
+async function verifyUserFollows(senderId) {
+  if (!PAGE_ACCESS_TOKEN || !senderId) return false;
+  try {
+    const res = await fetch(`https://graph.instagram.com/v20.0/${senderId}?fields=name,username,is_user_follow_business&access_token=${PAGE_ACCESS_TOKEN}`);
+    const data = await res.json();
+    const isFollower = data?.is_user_follow_business === true;
+    userProfileCache.set(senderId, {
+      name: data?.name ? data.name.split(' ')[0] : (data?.username ? `@${data.username}` : 'there'),
+      username: data?.username || '',
+      isFollower: isFollower
+    });
+    return isFollower;
+  } catch (err) {
+    logEntry('WARN', `Follow verification error for ${senderId}: ${err.message}`);
+    return false;
+  }
+}
+
 // Anti-Spam: Dynamic Public Comment Replies
 const PUBLIC_REPLIES = [
   (u) => `@${u} Sent to your DMs! Tap the access button below 📥✨`,
@@ -173,37 +192,63 @@ function getRandomPublicReply(username) {
 }
 
 // -----------------------------------------------------------------------------
-// STEP 1: Initial Private Reply to Comment on Reel
+// STEP 1: Initial Reply to Comment with Real Attached Button
 // -----------------------------------------------------------------------------
-async function sendStep1InitialAccess(commentId, username, component) {
-  const textMsg = `Hey @${username}! I'm so glad you're here - thanks a ton for stopping by 😊\n\nTap below and I'll send you the access in just a moment ✨`;
+async function sendStep1InitialAccess(commentId, commenterId, username, component) {
+  const textMsg = `Hey @${username}! I'm so glad you're here — thanks a ton for stopping by 😊\n\nTap below and I'll send you the access in just a moment ✨`;
 
-  // Try Quick Reply on Private Reply
-  const payload = {
-    recipient: { comment_id: commentId },
-    message: {
-      text: textMsg,
-      quick_replies: [
-        {
-          content_type: 'text',
-          title: 'Send me the access',
-          payload: `GET_ACCESS:${component.key}`
-        }
-      ]
+  const cardPayload = {
+    attachment: {
+      type: 'template',
+      payload: {
+        template_type: 'button',
+        text: textMsg,
+        buttons: [
+          {
+            type: 'postback',
+            title: 'Send me the access',
+            payload: `GET_ACCESS:${component.key}`
+          }
+        ]
+      }
     }
   };
 
-  const res = await sendInstagramMessage(payload);
-  if (!res.ok) {
-    logEntry('FALLBACK_STEP1', `Quick reply failed on comment_id, sending plain text prompt fallback...`);
+  let res = null;
+  // First priority: send directly to commenter ID as a real attached card button
+  if (commenterId) {
+    res = await sendInstagramMessage({
+      recipient: { id: commenterId },
+      message: cardPayload
+    });
+  }
+
+  // Fallback: send to commentId
+  if (!res || !res.ok) {
+    res = await sendInstagramMessage({
+      recipient: { comment_id: commentId },
+      message: cardPayload
+    });
+  }
+
+  // Second fallback: quick reply on comment_id
+  if (!res || !res.ok) {
+    logEntry('FALLBACK_STEP1', `Card template not accepted, falling back to quick reply...`);
     await sendInstagramMessage({
       recipient: { comment_id: commentId },
       message: {
-        text: `Hey @${username}! I'm so glad you're here - thanks a ton for stopping by 😊\n\nReply "Send me the access" below and I'll send you the links in just a moment ✨`
+        text: textMsg,
+        quick_replies: [
+          {
+            content_type: 'text',
+            title: 'Send me the access',
+            payload: `GET_ACCESS:${component.key}`
+          }
+        ]
       }
     });
   } else {
-    logEntry('STEP1_SENT', `Step 1 initial access button sent to @${username} for ${component.name}!`);
+    logEntry('STEP1_SENT', `Step 1 button template delivered to @${username} for ${component.name}!`);
   }
 }
 
@@ -222,7 +267,7 @@ async function sendStep2FollowGate(senderId, componentKey) {
 
   const promptText = `Hey ${user.name}! Looks like you're not following yet 👀\n\nIt would mean a lot if you could visit my profile and hit that follow button before grabbing the code 👇`;
 
-  // Button Template (Visit Profile + Postback "I'm following ✅")
+  // Button Template (Clean payload without illegal quick_replies mixing)
   const buttonTemplatePayload = {
     recipient: { id: senderId },
     message: {
@@ -244,14 +289,7 @@ async function sendStep2FollowGate(senderId, componentKey) {
             }
           ]
         }
-      },
-      quick_replies: [
-        {
-          content_type: 'text',
-          title: "I'm following ✅",
-          payload: `FOLLOW_CONFIRMED:${component.key}`
-        }
-      ]
+      }
     }
   };
 
@@ -272,8 +310,59 @@ async function sendStep2FollowGate(senderId, componentKey) {
       }
     });
   } else {
-    logEntry('STEP2_SENT', `Step 2 follow-gate prompt sent to ${user.name} (${senderId}) for ${component.name}!`);
+    logEntry('STEP2_SENT', `Step 2 follow-gate button card sent to ${user.name} (${senderId}) for ${component.name}!`);
   }
+}
+
+// -----------------------------------------------------------------------------
+// Not-Following Alert (When user taps "I'm following ✅" without following)
+// -----------------------------------------------------------------------------
+async function sendNotFollowingAlert(senderId, componentKey) {
+  const compKey = componentKey || 'DEFAULT';
+  const component = COMPONENT_CATALOG[compKey] || COMPONENT_CATALOG.DEFAULT;
+  const user = await getUserProfile(senderId);
+
+  await sendSenderAction(senderId, 'mark_seen');
+  await sendSenderAction(senderId, 'typing_on');
+  await new Promise(r => setTimeout(r, 600));
+
+  const alertText = `Oops ${user.name}! It looks like you haven't followed @haptixui yet 😅\n\nPlease visit our profile, tap Follow, and then press "I'm following ✅" below 👇`;
+
+  const payload = {
+    recipient: { id: senderId },
+    message: {
+      attachment: {
+        type: 'template',
+        payload: {
+          template_type: 'button',
+          text: alertText,
+          buttons: [
+            {
+              type: 'web_url',
+              url: PROFILE_URL,
+              title: 'Visit Profile'
+            },
+            {
+              type: 'postback',
+              title: "I'm following ✅",
+              payload: `FOLLOW_CONFIRMED:${component.key}`
+            }
+          ]
+        }
+      }
+    }
+  };
+
+  const res = await sendInstagramMessage(payload);
+  if (!res.ok) {
+    await sendInstagramMessage({
+      recipient: { id: senderId },
+      message: {
+        text: `${alertText}\n\nProfile: ${PROFILE_URL}`
+      }
+    });
+  }
+  logEntry('FOLLOW_ALERT_SENT', `Not-following gate alert sent to ${user.name} (${senderId}) for ${component.name}`);
 }
 
 // -----------------------------------------------------------------------------
@@ -552,8 +641,8 @@ app.post('/webhook', async (req, res) => {
           logEntry('TRIGGER_MATCH', `Matched ${component.name} (${component.key}) for @${username}! Sending Step 1 DM...`);
 
           try {
-            // Send Step 1: Initial DM with "Send me the access" interactive button
-            await sendStep1InitialAccess(commentId, username, component);
+            // Send Step 1: Initial DM with "Send me the access" interactive button card
+            await sendStep1InitialAccess(commentId, commenterId, username, component);
 
             // Dynamic anti-spam public reply
             const publicReplyMessage = getRandomPublicReply(username);
@@ -576,8 +665,14 @@ app.post('/webhook', async (req, res) => {
     // B) Direct Messages & Interactive Button Taps (Step 2 & Step 3 Triggers)
     // -------------------------------------------------------------------------
     for (const msgEvent of entry.messaging || []) {
+      // 1. CRITICAL: Ignore echoes of bot's own sent messages to prevent loops & duplicate bubbles
+      if (msgEvent.message?.is_echo) {
+        continue;
+      }
+
       const senderId = msgEvent.sender?.id;
-      if (!senderId) continue;
+      // Also ignore bot account's own ID
+      if (!senderId || senderId === '17841423867291932' || senderId === '28293499653683727') continue;
 
       // Extract payload from postback or quick reply or direct message text
       const postbackPayload = msgEvent.postback?.payload || '';
@@ -616,8 +711,17 @@ app.post('/webhook', async (req, res) => {
                                  upperMsgText === 'SEND';
 
       if (isFollowConfirmedTrigger) {
-        logEntry('FLOW_STEP3', `User ${senderId} confirmed following! Delivering 2 final buttons for ${componentKey}`);
-        await sendStep3FinalDelivery(senderId, componentKey, false);
+        logEntry('FLOW_STEP3_VERIFY', `User ${senderId} tapped "I'm following"! Verifying actual follower status...`);
+        // STRICT CHECK: Verify with Meta API if user is ACTUALLY following!
+        const actuallyFollows = await verifyUserFollows(senderId);
+
+        if (actuallyFollows) {
+          logEntry('FOLLOW_VERIFIED_SUCCESS', `User ${senderId} is VERIFIED follower! Delivering 2 final buttons for ${componentKey}`);
+          await sendStep3FinalDelivery(senderId, componentKey, false);
+        } else {
+          logEntry('FOLLOW_VERIFIED_FAILED', `User ${senderId} tapped "I'm following" BUT is NOT actually following! Refusing access.`);
+          await sendNotFollowingAlert(senderId, componentKey);
+        }
       } else if (isGetAccessTrigger) {
         // Smart Follower Check via Meta Graph API:
         // Agar user pehle se follow kar raha hai, toh Step 2 skip karke directly Step 3 deliver karo!
